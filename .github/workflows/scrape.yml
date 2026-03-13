@@ -4,9 +4,6 @@ on:
   schedule:
     - cron: '0 0 * * *'  # 每天早上8点（北京时间）
   workflow_dispatch:  # 允许手动触发
-  push:
-    branches:
-      - master
 
 jobs:
   scrape:
@@ -15,7 +12,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
+        with:
+          fetch-depth: 0
+          
       - name: 设置 Python
         uses: actions/setup-python@v5
         with:
@@ -27,25 +26,22 @@ jobs:
       - name: 抓取数据
         run: python scrape.py
           
-      - name: 提交数据
-        uses: stefanzweifel/git-auto-commit-action@v5
+      - name: 提交数据到 GitHub
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add price.csv metadata.json
+          git commit -m "自动更新菜价数据 $(date '+%Y-%m-%d')" || exit 0
+          
+      - name: 推送到 GitHub
+        uses: ad-m/github-push-action@master
         with:
-          commit_message: "自动更新菜价数据 $(date '+%Y-%m-%d')"
-          file_pattern: price.csv metadata.json
-
-      - name: Mirror to Gitee
-        uses: wearerequired/git-mirror-action@v1
-        env:
-          SSH_PRIVATE_KEY: b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZWQyNTUxOQAAACCGDj3reaEFb+bdGvOSyPZOuVUfo6f8xM6U+6vqCUwOlwAAAJAG52rGBudqxgAAAAtzc2gtZWQyNTUxOQAAACCGDj3reaEFb+bdGvOSyPZOuVUfo6f8xM6U+6vqCUwOlwAAAEB0rrs8ShHMnp4Na4vzdb6+ToGwhwv3usCIpQYzwKEw5YYOPet5oQVv5t0a85LI9k65VR+jp/zEzpT7q+oJTA6XAAAADUdpdGVlIFNTSCBLZXk=   # 需要配置 Gitee 的 SSH 私钥
-        with:
-          source-repo: 'git@github.com:vegetable-price.git'
-          destination-repo: 'git@gitee.com:puddingdoggg/vegetable-price.git'   # 改为你的 Gitee 仓库 SSH 地址
-
-      - name: Trigger Gitee Pages rebuild
-        uses: yanglbme/gitee-pages-action@main
-        with:
-          # 注意：Gitee 的 Personal Access Token 需要写入权限
-          gitee-username: puddingdoggg      # 你的 Gitee 用户名
-          gitee-password: F19960809cxk@      # 你的 Gitee 密码
-          gitee-repo: puddingdoggg/vegetable-price                   # 例如：zhangsan/price-table
-          branch: main    
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          force: true
+          
+      - name: 添加 Gitee remote
+        run: |
+          git remote add gitee https://${{ secrets.GITEE_USERNAME }}:${{ secrets.GITEE_PASSWORD }}@gitee.com/puddingdoggg/vegetable-price.git
+          
+      - name: 推送到 Gitee
+        run: git push gitee master --force
