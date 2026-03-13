@@ -1,29 +1,19 @@
-# 泰州菜价数据抓取
+# 泰州菜价
 
-## 本地运行
+泰州农贸市场菜价查询，每天自动更新。
 
-```bash
-pip install -r requirements.txt
-python scrape.py
-```
+## 部署
 
-## 部署到 Gitee Pages
+1. 创建 GitHub 仓库
+2. 推送代码：`git push origin master`
+3. 启用 GitHub Pages：Settings → Pages → Source: master branch
 
-1. 在 Gitee 创建仓库
-2. 推送代码
-3. 仓库 → 服务 → Gitee Pages → 启动
+## 手动触发更新
 
-## 手动更新数据
-
-```bash
-python scrape.py
-git add price.csv metadata.json
-git commit -m "更新菜价数据"
-git push
-```
+在仓库的 Actions 页面点击 "Run workflow"
 
 ## 文件说明
 - `scrape.py` - 数据抓取脚本
 - `index.html` - 前端页面
-- `price.csv` - 菜价数据
-- `metadata.json` - 元数据
+- `price.csv` - 菜价数据（自动生成）
+- `metadata.json` - 元数据（自动生成）
