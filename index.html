@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>泰州农贸市场菜价最低价</title>
+    <style>
+        body{font-family:'Microsoft YaHei',微软雅黑,Arial,sans-serif; margin:0; padding:0; background:#fff; min-height:100vh;}
+        .container{max-width:100%; margin:0 auto; padding:15px; box-sizing:border-box;}
+        .update{color:#666; text-align:center; margin-bottom:20px; font-size:14px;}
+        .discount-box{padding:15px; text-align:center; border-bottom:1px solid #eee;}
+        .discount-box label{font-size:14px; font-weight:bold; color:#333; margin-right:8px;}
+        .discount-box input{width:100px; padding:8px 12px; font-size:16px; border:2px solid #ddd; border-radius:8px; text-align:center;}
+        .table-wrapper{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+        table{width:100%; border-collapse:collapse; margin:0 auto; background:#fff;}
+        th,td{padding:4px 2px; text-align:center; border:1px solid #ddd; font-size:13px;}
+        th{background:#f8f9fa; color:#333; font-weight:bold;}
+        th .unit{font-size:10px; color:#999; font-weight:normal;}
+        tr:hover{background:#f5f5f5;}
+        .original-price{color:#333;}
+        .discounted-price{color:#333; font-weight:bold;}
+        .spec{color:#999; font-size:11px;}
+        .article-title{font-size:16px; font-weight:bold; margin-bottom:5px; color:#000;}
+        .loading{text-align:center; padding:40px; color:#666;}
+        .error{text-align:center; padding:40px; color:#e74c3c;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="update">
+            <div class="article-title" id="articleTitle">加载中...</div>
+            <div>更新时间：<span id="updateTime">-</span></div>
+        </div>
+        <div class="discount-box">
+            <label>折扣：</label>
+            <input type="number" step="0.01" min="0" max="1" value="0.8" placeholder="0.8" id="discount" oninput="applyDiscount()">
+        </div>
+        <div class="table-wrapper">
+            <table id="priceTable">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>商品名称</th>
+                        <th>最低价<br><span class="unit">（元/千克）</span></th>
+                        <th>折后价<br><span class="unit">（元/千克）</span></th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="4" class="loading">数据加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        let priceData = [];
+        
+        function applyDiscount() {
+            var discount = parseFloat(document.getElementById('discount').value);
+            if (isNaN(discount) || discount < 0 || discount > 1) {
+                return;
+            }
+            var rows = document.querySelectorAll('.discounted-price');
+            rows.forEach(function(td) {
+                var original = parseFloat(td.getAttribute('data-original'));
+                td.innerText = (original * discount).toFixed(2);
+            });
+        }
+        
+        function renderTable() {
+            var tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            priceData.forEach(function(item, index) {
+                var row = document.createElement('tr');
+                row.innerHTML = 
+                    '<td>' + (index + 1) + '</td>' +
+                    '<td>' + item[0] + '<br><span class="spec">' + item[1] + '</span></td>' +
+                    '<td class="original-price">' + item[2] + '</td>' +
+                    '<td class="discounted-price" data-original="' + item[2] + '">' + item[2] + '</td>';
+                tbody.appendChild(row);
+            });
+            applyDiscount();
+        }
+        
+        function parseCSV(text) {
+            var lines = text.trim().split('\n');
+            var data = [];
+            for (var i = 1; i < lines.length; i++) {
+                var cols = lines[i].split(',');
+                if (cols.length >= 3) {
+                    var name = cols[0].replace(/^"|"$/g, '').trim();
+                    var spec = cols[1].replace(/^"|"$/g, '').trim();
+                    var price = parseFloat(cols[2]) || 0;
+                    if (name && price > 0) {
+                        data.push([name, spec, price]);
+                    }
+                }
+            }
+            return data;
+        }
+        
+        function loadData() {
+            Promise.all([
+                fetch('price.csv').then(r => r.text()),
+                fetch('metadata.json').then(r => r.json()).catch(() => ({title: '', update_time: ''}))
+            ]).then(function([csvText, metadata]) {
+                priceData = parseCSV(csvText);
+                document.getElementById('articleTitle').textContent = metadata.title || '泰州市区农贸市场菜价';
+                document.getElementById('updateTime').textContent = metadata.update_time || '-';
+                renderTable();
+            }).catch(function(err) {
+                document.getElementById('tableBody').innerHTML = 
+                    '<tr><td colspan="4" class="error">数据加载失败，请刷新页面重试</td></tr>';
+                console.error(err);
+            });
+        }
+        
+        window.onload = loadData;
+    </script>
+</body>
+</html>
