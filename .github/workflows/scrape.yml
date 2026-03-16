@@ -5,6 +5,9 @@ on:
     - cron: '0 0 * * *'  # 每天早上8点（北京时间）
   workflow_dispatch:  # 允许手动触发
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
@@ -16,7 +19,7 @@ jobs:
           fetch-depth: 0
           
       - name: 设置 Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
           
